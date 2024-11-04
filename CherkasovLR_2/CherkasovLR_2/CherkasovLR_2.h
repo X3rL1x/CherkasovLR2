@@ -1,43 +1,71 @@
 #pragma once
 #include <iostream>
 #include <fstream>
+#include <map>
+#include <vector>
 
-struct Pipe
+class Pipe
 {
-    std::string namepipe;
+public:
 
-    float length;
+    std::string namepipe = "None";
 
-    float diametr;
+    float length = 0;
 
-    bool repair;
+    float diametr = 0;
+
+    bool repair = 0;
 
 };
 
-struct NPZ
+class NPZ
 {
-    std::string namenpz;
+public:
 
-    int countfactry;
+    std::string namenpz = "None";
 
-    int countfactrywork;
+    int countfactry = 0;
 
-    int productivity;
+    int countfactrywork = 0;
+
+    int productivity = 0;
+    
+    float percentage = 0;
+
+    void ChName (){
+
+    }
 
 };
 
-void AddPipe(Pipe& pipe);
+void AddPipe(std::map<int,Pipe>& pipes, int& idp);
 
-void RedactPipe(Pipe& pipe);
+void RedactPipe(std::map<int, Pipe>& pipes, int& idp);
 
-void AddNPZ(NPZ& npz);
+void AddNPZ(std::map<int, NPZ>& CSs, int& idc);
 
-void RedactNPZ(NPZ& npz);
+void RedactNPZ(std::map<int, NPZ>& CSs,int& idc);
 
 void start();
 
-void ViewAll(Pipe& pipe, NPZ& npz);
+void ViewPipe(std::map<int, Pipe>& pipes, int& idp);
 
-void Save(Pipe& pipe, NPZ& npz);
+void ViewCSs(std::map<int, NPZ>& CSs, int& idc);
 
-void Load(Pipe& pipe, NPZ& npz);
+void Save(std::map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc);
+
+void Load(std::map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc);
+
+void Remove(std::map<int, Pipe>& pipes, std::map<int, NPZ>& CSs, int idp, int idc);
+
+void Find(std::map<int, Pipe>& pipes, std::map<int, NPZ>& CSs, int idp, int idc);
+
+int Inputint(int mode, int mi, int ma);
+
+float Inputfl(int mode, int mi, int ma);
+
+void RedactFoundPipe(std::map<int, Pipe>& pipes,std::vector<int>);
+
+void RedactFoundCS(std::map<int, NPZ>& CSs,std::vector<int>);
+
+void log();
