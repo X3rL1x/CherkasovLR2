@@ -131,7 +131,9 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CherkasovLR_2.h" />
+    <ClInclude Include="Pipe_s.h" />
+    <ClInclude Include="CS_s.h" />
+    <ClInclude Include="Function.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

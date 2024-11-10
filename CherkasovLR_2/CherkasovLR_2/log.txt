@@ -1,0 +1,36 @@
+Sun Nov 10 23:40:40 2024
+ Programm start
+Sun Nov 10 23:40:41 2024
+ User select case 1
+Sun Nov 10 23:40:45 2024
+ User add pipe with name: qwe, id: 1
+Sun Nov 10 23:40:46 2024
+ User select case 2
+Sun Nov 10 23:40:52 2024
+ User add CS with name: yy, id: 1
+Sun Nov 10 23:40:53 2024
+ User select case 3
+Sun Nov 10 23:40:59 2024
+ User select case 8
+Sun Nov 10 23:41:01 2024
+ User delete CS 1
+Sun Nov 10 23:41:02 2024
+ User select case 3
+Sun Nov 10 23:41:29 2024
+ User select case 7
+Sun Nov 10 23:41:32 2024
+ User select case 3
+Sun Nov 10 23:41:37 2024
+ User select case 1
+Sun Nov 10 23:41:42 2024
+ User add pipe with name: tt, id: 2
+Sun Nov 10 23:57:50 2024
+ Programm start
+Sun Nov 10 23:57:57 2024
+ Programm start
+Sun Nov 10 23:57:58 2024
+ User select case 2
+Sun Nov 10 23:58:03 2024
+ User add CS with name: 1, id: 1
+Sun Nov 10 23:58:04 2024
+ User select case 3

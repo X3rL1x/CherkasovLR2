@@ -1,5 +1,5 @@
 ﻿#include <iostream>
-#include "CherkasovLR_2.h"
+#include "Function.h"
 using namespace std;
 
 int main()
