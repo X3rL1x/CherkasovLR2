@@ -131,6 +131,7 @@
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Connect.h" />
     <ClInclude Include="Pipe_s.h" />
     <ClInclude Include="CS_s.h" />
     <ClInclude Include="Function.h" />

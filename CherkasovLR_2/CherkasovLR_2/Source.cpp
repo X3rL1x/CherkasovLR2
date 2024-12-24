@@ -22,7 +22,15 @@
 
 #include <chrono>
 
+#include <queue>
+
 using namespace std;
+
+void show_vector(vector<int>& a)
+{
+	for (vector<int>::iterator it = a.begin(); it != a.end(); ++it)
+		cout << *it << ", ";
+}
 
 void log(string a) {
 	auto now = chrono::system_clock::now();
@@ -150,10 +158,14 @@ template<typename T> T Input(int mode, int mi, int ma, int foi){
 void start()
 {
 	log("Programm start");
+	vector<int> pipeid;
+	vector<int> CSsid;
 	map<int, Pipe> pipes;
 	map<int, NPZ> CSs;
+	map<int, Conn> Conn;
 	int idp = 0;
 	int idc = 0;
+	int idconn = 0;
 	do
 	{
 		int c = 1;
@@ -168,21 +180,23 @@ void start()
 			<< "7. Load" << endl
 			<< "8. Delete" << endl
 			<< "9. Find" << endl
+			<< "10. Add connect" << endl
+			<< "11.Topological sort" << endl
 			<< "0. Exit" << endl;
 
-		c = Input<int>(1, 0, 9,0);
+		c = Input<int>(1, 0, 11,0);
 
 		switch (c)
 		{
 		case 1:
 			cin.clear();
 			log("User select case 1");
-			AddPipe(pipes, idp);
+			AddPipe(pipes, idp, pipeid);
 			break;
 		case 2:
 			cin.clear();
 			log("User select case 2");
-			AddNPZ(CSs, idc);
+			AddNPZ(CSs, idc, CSsid);
 			break;
 		case 3:
 			cin.clear();
@@ -220,6 +234,16 @@ void start()
 			log("User select case 9");
 			Find(pipes, CSs, idp, idc);
 			break;
+		case 10:
+			cin.clear();
+			log("User select case 10");
+			addconn(Conn, pipeid, CSsid);
+			break;
+		case 11:
+			cin.clear();
+			log("User select case 11");
+			Topolsort(Conn, idc);
+			break;
 		case 0:
 			log("User select case 0");
 			cin.clear();
@@ -250,8 +274,57 @@ void Remove(map<int, Pipe>& pipes, map<int, NPZ>& CSs, int idp, int idc) {
 
 }
 
-void AddPipe(map<int, Pipe>& pipes, int& idp)
-{
+void addconn(map<int, Conn>& Conn, vector<int>& pipeid, vector<int>& CSsid) {
+	int inputPipeId;
+	while (true) {
+		cout << "Введите ID трубы" << endl;
+		inputPipeId = Input<int>(2, 1, 0, 0);
+
+		// Проверка наличия pipesid в векторе pipeid
+		if (find(pipeid.begin(), pipeid.end(), inputPipeId) != pipeid.end()) {
+			break; // Выход из цикла, если ID трубы найден
+		}
+		else {
+			cout << "Ошибка: ID трубы не найден в списке pipeid. Пожалуйста, попробуйте снова." << endl;
+		}
+	}
+
+	int inputConnOut;
+	while (true) {
+		// Ввод родительской КС
+		cout << "Введите родительскую КС" << endl;
+		inputConnOut = Input<int>(2, 1, 0, 0);
+
+		// Проверка наличия connout в векторе CSsid
+		if (find(CSsid.begin(), CSsid.end(), inputConnOut) != CSsid.end()) {
+			break; // Выход из цикла, если родительская КС найдена
+		}
+		else {
+			cout << "Ошибка: родительская КС не найдена в списке CSsid. Пожалуйста, попробуйте снова." << endl;
+		}
+	}
+
+	int inputConnIn;
+	while (true) {
+		// Ввод дочерней трубы
+		cout << "Введите дочернюю трубу" << endl;
+		inputConnIn = Input<int>(2, 1, 0, 0);
+
+		// Проверка наличия connin в векторе CSsid
+		if (find(CSsid.begin(), CSsid.end(), inputConnIn) != CSsid.end()) {
+			break; // Выход из цикла, если дочерняя труба найдена
+		}
+		else {
+			cout << "Ошибка: дочерняя труба не найдена в списке CSsid. Пожалуйста, попробуйте снова." << endl;
+		}
+	}
+
+	// Добавление данных в map с использованием pipeid в качестве ключа
+	Conn[inputPipeId] = { inputConnOut, inputConnIn };
+}
+
+void AddPipe(map<int, Pipe>& pipes, int& idp, vector<int>& pipeid){
+
 	idp++;
 
 	cout << "input name" << endl;
@@ -272,7 +345,10 @@ void AddPipe(map<int, Pipe>& pipes, int& idp)
 
 	cin.clear();
 
+	pipeid.push_back(idp);
+
 	log("User add pipe with name: " + pipes[idp].namepipe + ", id: " + to_string(idp));
+
 }
 
 void RedactPipe(map<int, Pipe>& pipes, int& idp)
@@ -297,7 +373,7 @@ void RedactPipe(map<int, Pipe>& pipes, int& idp)
 	}
 }
 
-void AddNPZ(map<int, NPZ>& CSs, int& idc)
+void AddNPZ(map<int, NPZ>& CSs, int& idc, vector<int>& CSsid)
 {
 	idc++;
 
@@ -318,6 +394,8 @@ void AddNPZ(map<int, NPZ>& CSs, int& idc)
 	CSs[idc].productivity = Input<int>(2, 1, 0, 0);
 
 	CSs[idc].percentage = (CSs[idc] / CSs[idc]);
+
+	CSsid.push_back(idc);
 
 	log("User add CS with name: " + CSs[idc].namenpz + ", id: " + to_string(idc));
 
@@ -396,7 +474,8 @@ void ViewCSs(map<int, NPZ>&CSs, int& idc) {
 					<< "Productivity" << endl
 					<< CSs[ch].productivity << endl
 					<< "%" << endl
-					<< CSs[ch].percentage << endl << endl;;
+					<< CSs[ch].percentage << endl
+					<< "Connctions in" << endl;
 			}
 			else {
 				cout << "Not found(" << endl;
@@ -407,6 +486,7 @@ void ViewCSs(map<int, NPZ>&CSs, int& idc) {
 		cout << endl << "Object CS* empty(" << endl << endl;
 	}
 }
+
 void Save(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc)
 {
 	ofstream SaveFile("savefile.txt");
@@ -447,6 +527,8 @@ void Save(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc)
 				SaveFile << "wn" << '-' << g << '/' << CSs[i].countfactrywork << endl;
 
 				SaveFile << "pn" << '-' << g << '/' << CSs[i].productivity << endl;
+
+				SaveFile << "cp" << '-' << g << '/' << CSs[i].percentage << endl;
 
 			}
 		}
@@ -534,6 +616,13 @@ void Load(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc) {
 				pos = line.find('/');
 				id = stoi(line.substr(3, pos - 3));
 				CSs[id].productivity = stoi(line.substr(pos + 1));
+				if (maxidc < id) { maxidc = id; }
+			}
+
+			if (line.find("cp") == 0) {
+				pos = line.find('/');
+				id = stoi(line.substr(3, pos - 3));
+				CSs[id].percentage = stoi(line.substr(pos + 1));
 				if (maxidc < id) { maxidc = id; }
 			}
 
@@ -737,7 +826,93 @@ void Find(map<int, Pipe>& pipes, std::map<int, NPZ>& CSs, int idp, int idc) {
 	}
 }
 
+void Topolsort(map<int, Conn>& Conn, int& idc) {
 
+	vector<vector<int>> mat;
+	  
+	vector<int> answer;
+
+	mat = createAdjacencyMatrix(Conn, idc);
+
+	printAdjacencyMatrix(mat);
+
+	answer = topologicalSort(mat);
+
+	reverse(answer.begin(), answer.end());
+
+	show_vector(answer);
+}
+
+vector<vector<int>> createAdjacencyMatrix(const map<int, Conn>& edges, int numVertices) {
+	vector<vector<int>> matrix(numVertices+1, vector<int>(numVertices+1, 0));
+
+	for (const auto& edge : edges) {
+		int from = edge.second.connout;
+		int to = edge.second.connin;
+		matrix[from][to] = 1; // Устанавливаем 1 для ребра от from к to
+	}
+
+	return matrix;
+}
+
+// Функция для топологической сортировки
+vector<int> topologicalSort(const vector<vector<int>>& matrix) {
+	int numVertices = matrix.size();
+	vector<int> inDegree(numVertices, 0);
+	vector<int> sortedOrder;
+
+	// Вычисляем входящие степени
+	for (int i = 0; i < numVertices; ++i) {
+		for (int j = 0; j < numVertices; ++j) {
+			if (matrix[i][j] == 1) {
+				inDegree[j]++;
+			}
+		}
+	}
+
+	// Используем очередь для хранения вершин с нулевой входящей степенью
+	queue<int> q;
+	for (int i = 0; i < numVertices; ++i) {
+		if (inDegree[i] == 0) {
+			q.push(i);
+		}
+	}
+
+	// Основной цикл топологической сортировки
+	while (!q.empty()) {
+		int current = q.front();
+		q.pop();
+		sortedOrder.push_back(current);
+
+		// Уменьшаем входящую степень соседей
+		for (int j = 0; j < numVertices; ++j) {
+			if (matrix[current][j] == 1) {
+				inDegree[j]--;
+				if (inDegree[j] == 0) {
+					q.push(j);
+				}
+			}
+		}
+	}
+
+	// Проверка на наличие цикла в графе
+	if (sortedOrder.size() != numVertices) {
+		cout << "Граф содержит цикл, топологическая сортировка невозможна." << endl;
+		return {};
+	}
+
+	return sortedOrder;
+}
+
+// Функция для вывода матрицы смежности
+void printAdjacencyMatrix(const vector<vector<int>>& matrix) {
+	for (const auto& row : matrix) {
+		for (int val : row) {
+			cout << val << " ";
+		}
+		cout << endl;
+	}
+}
 
 
 

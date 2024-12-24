@@ -16,9 +16,9 @@ public:
 
     int productivity = 0;
 
-    float percentage = 0;
+    int percentage = 0;
 
-    float operator/(NPZ& other)
+    int operator/(NPZ& other)
     {
         if (other.countfactry == 0)
         {
