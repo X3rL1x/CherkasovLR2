@@ -5,13 +5,15 @@
 #include <string>
 #include <algorithm>
 #include <queue>
+#include <set>
 #include "Pipe_s.h"
 #include "CS_s.h"
 #include "Connect.h"
 
+
 using namespace std;
 
-void AddPipe(std::map<int, Pipe>& pipes, int& idp, vector<int>& pipeid);
+void AddPipe(std::map<int, Pipe>& pipes, int& idp, map<int, int>& pipeid);
 
 void RedactPipe(std::map<int, Pipe>& pipes, int& idp);
 
@@ -25,13 +27,19 @@ void show_vector(vector<int>& a);
 
 void Topolsort(map<int, Conn>& Conn, int& idc);
 
+void ShortestPath(const map<int, Conn>& edges, int numVertices);
+
+void maxFlow(const map<int, Conn>& edges, int idc);
+
 vector<vector<int>> createAdjacencyMatrix(const map<int, Conn>& edges, int numVertices);
 
 vector<int> topologicalSort(const vector<vector<int>>& matrix);
 
+bool isValidDiameter(int diameter);
+
 void printAdjacencyMatrix(const vector<vector<int>>& matrix);
 
-void addconn(map<int, Conn>& Conn, vector<int>& pipeid, vector<int>& CSsid);
+void addconn(map<int, Conn>& Conn, map<int, int>& pipeid, vector<int>& CSsid, map<int, Pipe>& pipes, int& idp, set<int>& usedPipeIds);
 
 void ViewPipe(std::map<int, Pipe>& pipes, int& idp);
 
@@ -39,7 +47,7 @@ void ViewCSs(std::map<int, NPZ>& CSs, int& idc);
 
 void Save(std::map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc);
 
-void Load(std::map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc);
+void Load(std::map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc, map<int, int>& pipeid);
 
 void Remove(std::map<int, Pipe>& pipes, std::map<int, NPZ>& CSs, int idp, int idc);
 

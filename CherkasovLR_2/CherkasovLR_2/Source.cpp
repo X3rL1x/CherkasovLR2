@@ -24,7 +24,17 @@
 
 #include <queue>
 
+#include <set>
+
+#include <limits>
+
+#include <unordered_map>
+
 using namespace std;
+
+bool isValidDiameter(int diameter) {
+	return (diameter == 500 || diameter == 700 || diameter == 1000 || diameter == 1400);
+}
 
 void show_vector(vector<int>& a)
 {
@@ -158,11 +168,12 @@ template<typename T> T Input(int mode, int mi, int ma, int foi){
 void start()
 {
 	log("Programm start");
-	vector<int> pipeid;
+	map<int, int> pipeid;
 	vector<int> CSsid;
 	map<int, Pipe> pipes;
 	map<int, NPZ> CSs;
 	map<int, Conn> Conn;
+	set<int> usedPipeIds;
 	int idp = 0;
 	int idc = 0;
 	int idconn = 0;
@@ -181,10 +192,12 @@ void start()
 			<< "8. Delete" << endl
 			<< "9. Find" << endl
 			<< "10. Add connect" << endl
-			<< "11.Topological sort" << endl
+			<< "11. Topological sort" << endl
+			<< "12. Shortest path" << endl
+			<< "13. Max flow" << endl
 			<< "0. Exit" << endl;
 
-		c = Input<int>(1, 0, 11,0);
+		c = Input<int>(1, 0, 13,0);
 
 		switch (c)
 		{
@@ -222,7 +235,7 @@ void start()
 		case 7:
 			cin.clear();
 			log("User select case 7");
-			Load(pipes,idp, CSs, idc);
+			Load(pipes,idp, CSs, idc, pipeid);
 			break;
 		case 8:
 			cin.clear();
@@ -237,12 +250,22 @@ void start()
 		case 10:
 			cin.clear();
 			log("User select case 10");
-			addconn(Conn, pipeid, CSsid);
+			addconn(Conn, pipeid, CSsid, pipes, idp, usedPipeIds);
 			break;
 		case 11:
 			cin.clear();
 			log("User select case 11");
 			Topolsort(Conn, idc);
+			break;
+		case 12:
+			cin.clear();
+			log("User select case 12");
+			ShortestPath(Conn, idc);
+			break;
+		case 13:
+			cin.clear();
+			log("User select case 13");
+			maxFlow(Conn, idc);
 			break;
 		case 0:
 			log("User select case 0");
@@ -274,30 +297,62 @@ void Remove(map<int, Pipe>& pipes, map<int, NPZ>& CSs, int idp, int idc) {
 
 }
 
-void addconn(map<int, Conn>& Conn, vector<int>& pipeid, vector<int>& CSsid) {
-	int inputPipeId;
-	while (true) {
-		cout << "Введите ID трубы" << endl;
-		inputPipeId = Input<int>(2, 1, 0, 0);
+void addconn(map<int, Conn>& Conn, map<int, int>& pipeid, vector<int>& CSsid, map<int, Pipe>& pipes, int& idp, set<int>& usedPipeIds) {
+	int inputPipeDiameter; 
+	int inputPipeId = -1; 
 
-		// Проверка наличия pipesid в векторе pipeid
-		if (find(pipeid.begin(), pipeid.end(), inputPipeId) != pipeid.end()) {
-			break; // Выход из цикла, если ID трубы найден
+	if (CSsid.size() < 2) {
+		cout << "Меньше двух CS, соединение невозможно!" << endl;
+		return;
+	}
+
+	while (true) {
+		cout << "Введите диаметр трубы (500, 700, 1000 или 1400): ";
+		cin >> inputPipeDiameter;
+		cin.clear();
+		cin.ignore();
+
+		if (isValidDiameter(inputPipeDiameter)) {
+			for (const auto& entry : pipeid) {
+				if (pipes[entry.first].diametr == inputPipeDiameter && usedPipeIds.find(entry.first) == usedPipeIds.end()) {
+					inputPipeId = entry.first; 
+					usedPipeIds.insert(inputPipeId); 
+					break;
+				}
+			}
+
+			if (inputPipeId != -1) {
+				cout << "Труба с диаметром " << inputPipeDiameter << " найдена с ID " << inputPipeId << endl;
+				break; 
+			}
+			else {
+				cout << "Труба с диаметром " << inputPipeDiameter << " не найдена. Хотите создать новую трубу? (1 - Да, 0 - Нет): ";
+				int createNew;
+				cin >> createNew;
+				if (createNew == 1) {
+					cin.clear();
+					cin.ignore();
+					AddPipe(pipes, idp, pipeid);
+					continue; 
+				}
+				else {
+					cout << "Выход из функции." << endl;
+					return;
+				}
+			}
 		}
 		else {
-			cout << "Ошибка: ID трубы не найден в списке pipeid. Пожалуйста, попробуйте снова." << endl;
+			cout << "Ошибка: диаметр трубы должен быть 500, 700, 1000 или 1400. Пожалуйста, попробуйте снова." << endl;
 		}
 	}
 
 	int inputConnOut;
 	while (true) {
-		// Ввод родительской КС
 		cout << "Введите родительскую КС" << endl;
 		inputConnOut = Input<int>(2, 1, 0, 0);
 
-		// Проверка наличия connout в векторе CSsid
 		if (find(CSsid.begin(), CSsid.end(), inputConnOut) != CSsid.end()) {
-			break; // Выход из цикла, если родительская КС найдена
+			break;
 		}
 		else {
 			cout << "Ошибка: родительская КС не найдена в списке CSsid. Пожалуйста, попробуйте снова." << endl;
@@ -306,49 +361,55 @@ void addconn(map<int, Conn>& Conn, vector<int>& pipeid, vector<int>& CSsid) {
 
 	int inputConnIn;
 	while (true) {
-		// Ввод дочерней трубы
-		cout << "Введите дочернюю трубу" << endl;
+		cout << "Введите дочернюю КС" << endl;
 		inputConnIn = Input<int>(2, 1, 0, 0);
 
-		// Проверка наличия connin в векторе CSsid
+
 		if (find(CSsid.begin(), CSsid.end(), inputConnIn) != CSsid.end()) {
-			break; // Выход из цикла, если дочерняя труба найдена
+			break; 
 		}
 		else {
 			cout << "Ошибка: дочерняя труба не найдена в списке CSsid. Пожалуйста, попробуйте снова." << endl;
 		}
 	}
 
-	// Добавление данных в map с использованием pipeid в качестве ключа
-	Conn[inputPipeId] = { inputConnOut, inputConnIn };
+	Conn[inputPipeId] = { inputPipeDiameter, inputConnIn, inputConnOut, pipes[inputPipeId].length, pipes[inputPipeId].repair };
+	Conn[inputPipeId].updateProfit();
+	cout << "Произодительность соединения:" << Conn[inputPipeId].profit << endl << endl;
 }
 
-void AddPipe(map<int, Pipe>& pipes, int& idp, vector<int>& pipeid){
-
+void AddPipe(map<int, Pipe>& pipes, int& idp, map<int, int>& pipeid) {
 	idp++;
 
-	cout << "input name" << endl;
-
+	cout << "Введите название трубы:" << endl;
 	getline(cin, pipes[idp].namepipe);
 
-	cout << "input length" << endl;
+	cout << "Введите длину трубы:" << endl;
+	pipes[idp].length = Input<int>(2, 1, 0, 0);
 
-	pipes[idp].length = Input<float>(2, 1, 0, 1);
+	while (true) {
+		cout << "Введите диаметр трубы (500, 700, 1000 или 1400):" << endl;
+		int diameter;
+		diameter = Input<int>(2, 1, 0, 0); 
 
-	cout << "input diametr" << endl;
+		if (isValidDiameter(diameter)) {
+			pipes[idp].diametr = diameter;
+			break; 
+		}
+		else {
+			cout << "Ошибка: диаметр трубы должен быть 500, 700, 1000 или 1400. Пожалуйста, попробуйте снова." << endl;
+		}
+	}
 
-	pipes[idp].diametr = Input<float>(2, 1, 0, 1);
-
-	cout << "Repair? (1 or 0)" << endl;
-
+	cout << "Нужен ли ремонт? (1 - Да, 0 - Нет):" << endl;
 	pipes[idp].repair = Input<int>(1, 0, 1, 0);
 
 	cin.clear();
 
-	pipeid.push_back(idp);
+	pipeid[idp] = pipes[idp].diametr;
 
-	log("User add pipe with name: " + pipes[idp].namepipe + ", id: " + to_string(idp));
 
+	log("Пользователь добавил трубу с названием: " + pipes[idp].namepipe + ", id: " + to_string(idp));
 }
 
 void RedactPipe(map<int, Pipe>& pipes, int& idp)
@@ -540,7 +601,7 @@ void Save(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc)
 	SaveFile.close();
 }
 
-void Load(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc) {
+void Load(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc, map<int, int>& pipeid) {
 
 	ifstream fin("savefile.txt");
 
@@ -581,6 +642,7 @@ void Load(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc) {
 				pos = line.find('/');
 				id = stoi(line.substr(3, pos - 3));
 				pipes[id].diametr = stof(line.substr(pos + 1));
+				pipeid[id] = pipes[id].diametr;
 				if (maxidp < id) { maxidp = id; }
 			}
 
@@ -628,8 +690,8 @@ void Load(map<int, Pipe>& pipes, int& idp, std::map<int, NPZ>& CSs, int& idc) {
 
 		}
 	}
-	if (idc < maxidc) { idc = maxidc; }
-	if (idp < maxidp) { idp = maxidp; }
+	if (idc != maxidc) { idc = maxidc; }
+	if (idp != maxidp) { idp = maxidp; }
 	fin.close();
 }
 
@@ -827,50 +889,47 @@ void Find(map<int, Pipe>& pipes, std::map<int, NPZ>& CSs, int idp, int idc) {
 }
 
 void Topolsort(map<int, Conn>& Conn, int& idc) {
-
 	vector<vector<int>> mat;
-	  
 	vector<int> answer;
 
+	if (Conn.empty()) {
+		cout << "Нет соединений!" << endl;
+		return;
+	}
+
 	mat = createAdjacencyMatrix(Conn, idc);
-
 	printAdjacencyMatrix(mat);
-
 	answer = topologicalSort(mat);
-
-	reverse(answer.begin(), answer.end());
-
 	show_vector(answer);
 }
 
 vector<vector<int>> createAdjacencyMatrix(const map<int, Conn>& edges, int numVertices) {
-	vector<vector<int>> matrix(numVertices+1, vector<int>(numVertices+1, 0));
+	vector<vector<int>> matrix(numVertices, vector<int>(numVertices, 0));
 
 	for (const auto& edge : edges) {
-		int from = edge.second.connout;
-		int to = edge.second.connin;
-		matrix[from][to] = 1; // Устанавливаем 1 для ребра от from к to
+		int from = edge.second.connout - 1; 
+		int to = edge.second.connin - 1;     
+		matrix[from][to] = edge.second.diametr; 
 	}
 
 	return matrix;
 }
 
-// Функция для топологической сортировки
+
 vector<int> topologicalSort(const vector<vector<int>>& matrix) {
 	int numVertices = matrix.size();
 	vector<int> inDegree(numVertices, 0);
 	vector<int> sortedOrder;
 
-	// Вычисляем входящие степени
 	for (int i = 0; i < numVertices; ++i) {
 		for (int j = 0; j < numVertices; ++j) {
-			if (matrix[i][j] == 1) {
+			if (matrix[i][j] != 0) {
 				inDegree[j]++;
 			}
 		}
 	}
 
-	// Используем очередь для хранения вершин с нулевой входящей степенью
+
 	queue<int> q;
 	for (int i = 0; i < numVertices; ++i) {
 		if (inDegree[i] == 0) {
@@ -878,15 +937,15 @@ vector<int> topologicalSort(const vector<vector<int>>& matrix) {
 		}
 	}
 
-	// Основной цикл топологической сортировки
+
 	while (!q.empty()) {
 		int current = q.front();
 		q.pop();
-		sortedOrder.push_back(current);
+		sortedOrder.push_back(current + 1); 
 
-		// Уменьшаем входящую степень соседей
+
 		for (int j = 0; j < numVertices; ++j) {
-			if (matrix[current][j] == 1) {
+			if (matrix[current][j] != 0) {
 				inDegree[j]--;
 				if (inDegree[j] == 0) {
 					q.push(j);
@@ -895,7 +954,7 @@ vector<int> topologicalSort(const vector<vector<int>>& matrix) {
 		}
 	}
 
-	// Проверка на наличие цикла в графе
+
 	if (sortedOrder.size() != numVertices) {
 		cout << "Граф содержит цикл, топологическая сортировка невозможна." << endl;
 		return {};
@@ -904,17 +963,198 @@ vector<int> topologicalSort(const vector<vector<int>>& matrix) {
 	return sortedOrder;
 }
 
-// Функция для вывода матрицы смежности
+
 void printAdjacencyMatrix(const vector<vector<int>>& matrix) {
+	cout << "Матрица смежности:" << endl;
 	for (const auto& row : matrix) {
 		for (int val : row) {
-			cout << val << " ";
+			cout << val << "   ";
 		}
 		cout << endl;
 	}
 }
 
 
+void show_vector(const vector<int>& vec) {
+	for (int val : vec) {
+		cout << val << "   ";
+	}
+	cout << endl;
+}
+
+void ShortestPath(const map<int, Conn>& edges, int numVertices) {
+	int start, end;
+	if (edges.empty()) {
+		cout << "Нет соединений!" << endl;
+		return;
+	}
+	cout << "Введите начальную CS (1-" << numVertices << "): " << endl;
+	cin >> start;
+	cin.clear();
+	cin.ignore();
+	cout << "Введите конечную CS (1-" << numVertices << "): " << endl;
+	cin >> end;
+	cin.clear();
+	cin.ignore();
+
+	if (start < 1 || start > numVertices || end < 1 || end > numVertices) {
+		cout << "Некорректный ввод CS." << endl;
+		return;
+	}
+
+	
+	vector<vector<int>> matrix(numVertices + 1, vector<int>(numVertices + 1, numeric_limits<int>::max()));
+	for (int i = 1; i <= numVertices; ++i) {
+		matrix[i][i] = 0; 
+	}
+
+
+	for (const auto& edge : edges) {
+		int from = edge.second.connout;
+		int to = edge.second.connin;
+
+		
+		if (edge.second.repair == 0) { 
+			matrix[from][to] = min(matrix[from][to], edge.second.length);
+		}
+		else { 
+			matrix[from][to] = numeric_limits<int>::max(); 
+		}
+	}
+
+	
+	vector<int> dist(numVertices + 1, numeric_limits<int>::max());
+	vector<int> prev(numVertices + 1, -1);
+	vector<bool> visited(numVertices + 1, false);
+
+	dist[start] = 0;
+
+	for (int count = 1; count <= numVertices; ++count) {
+		int u = -1;
+		for (int i = 1; i <= numVertices; ++i) {
+			if (!visited[i] && (u == -1 || dist[i] < dist[u])) {
+				u = i;
+			}
+		}
+
+		if (dist[u] == numeric_limits<int>::max()) {
+			break; 
+		}
+
+		visited[u] = true;
+
+		for (int v = 1; v <= numVertices; ++v) {
+			if (matrix[u][v] != numeric_limits<int>::max() && !visited[v]) {
+				int newDist = dist[u] + matrix[u][v];
+				if (newDist < dist[v]) {
+					dist[v] = newDist;
+					prev[v] = u;
+				}
+			}
+		}
+	}
+
+
+	if (dist[end] == numeric_limits<int>::max()) {
+		cout << "Нет пути от CS " << start << " до CS " << end << "." << endl;
+		return;
+	}
+
+	cout << "Кратчайший путь от CS " << start << " до CS " << end << ": ";
+	vector<int> path;
+	for (int at = end; at != -1; at = prev[at]) {
+		path.push_back(at);
+	}
+	reverse(path.begin(), path.end());
+
+	for (int p : path) {
+		cout << p << " ";
+	}
+	cout << "\nДлина пути: " << dist[end] << endl;
+}
+
+void maxFlow(const map<int, Conn>& edges, int idc) {
+	int source, sink;
+
+	if (edges.empty()) {
+		cout << "Нет соединений!" << endl;
+		return;
+	}
+
+	while (true) {
+		cout << "Введите CS-сток (1-" << idc << "): ";
+		cin >> source;
+		if (source >= 1 && source <= idc) break;
+		cout << "Ошибка: CS-сток должна быть в диапазоне [1, " << idc << "]. Попробуйте снова." << endl;
+	}
+
+	while (true) {
+		cout << "Введите CS-исток (1-" << idc << "): ";
+		cin >> sink;
+		if (sink >= 1 && sink <= idc && sink != source) break; 
+		cout << "Ошибка: CS-исток должна быть в диапазоне [1, " << idc << "] и не может совпадать с истоком. Попробуйте снова." << endl;
+	}
+
+	map<int, vector<pair<int, int>>> graph;
+
+	for (const auto& edge : edges) {
+		const Conn& conn = edge.second;
+		graph[conn.connin].emplace_back(conn.connout, conn.profit);
+		graph[conn.connout]; 
+	}
+
+	int max_flow = 0;
+	map<int, map<int, int>> residualGraph; 
+
+
+	for (const auto& edge : edges) {
+		const Conn& conn = edge.second;
+		residualGraph[conn.connin][conn.connout] += conn.profit;
+	}
+
+	while (true) {
+		queue<int> q;
+		q.push(source);
+		unordered_map<int, int> parent;
+		parent[source] = -1;
+
+		while (!q.empty()) {
+			int u = q.front();
+			q.pop();
+
+			for (const auto& neighbor : graph[u]) {
+				int v = neighbor.first;
+				int capacity = residualGraph[u][v];
+
+				if (parent.find(v) == parent.end() && capacity > 0) {
+					parent[v] = u;
+					if (v == sink) break;
+					q.push(v);
+				}
+			}
+
+			if (parent.find(sink) != parent.end()) break;
+		}
+
+		if (parent.find(sink) == parent.end()) break;
+
+		int path_flow = numeric_limits<int>::max();
+		for (int v = sink; v != source; v = parent[v]) {
+			int u = parent[v];
+			path_flow = min(path_flow, residualGraph[u][v]);
+		}
+
+		for (int v = sink; v != source; v = parent[v]) {
+			int u = parent[v];
+			residualGraph[u][v] -= path_flow;
+			residualGraph[v][u] += path_flow;
+		}
+
+		max_flow += path_flow;
+	}
+
+	cout << "Максимальный поток: "  << max_flow << endl << endl;
+}
 
 
 

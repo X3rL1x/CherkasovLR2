@@ -10,9 +10,9 @@ public:
 
     std::string namepipe = "None";
 
-    float length = 0;
+    int length = 0;
 
-    float diametr = 0;
+    int diametr = 0;
 
     bool repair = 0;
 
